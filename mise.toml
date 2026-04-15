@@ -6,8 +6,8 @@ gum = "latest"
 usage = "latest"
 
 [env]
-MEB_REPO = { required = "GitHub repository in owner/repo format — run 'mise run init' to configure" }
-MEB_TRACKER = { required = "Issue tracker backend — run 'mise run init' to configure (github | linear | none)" }
+# MEB_REPO = ""        # owner/repo format; set via: mise set MEB_REPO=owner/repo --env local
+# MEB_TRACKER = ""     # github | linear | none; set via: mise set MEB_TRACKER=github --env local
 # MEB_LINEAR_TEAM = ""     # required when MEB_TRACKER=linear; set via: mise set MEB_LINEAR_TEAM=PROJ --env local
 # MEB_TERMINAL = "none"    # cmux | kitty | iterm2 | alacritty | ghostty | none
 # MEB_DEFAULT_BRANCH = ""  # auto-detected from GitHub if unset
