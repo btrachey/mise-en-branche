@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
+#MISE description="Remove a worktree interactively or by identifier"
+#USAGE arg "[path]" help="Worktree directory path"
+#USAGE flag "--branch <branch>" help="Identify worktree by branch name"
+#USAGE flag "--gh <number>" help="Identify by GitHub issue (reverse slug lookup)"
+#USAGE flag "--linear <id>" help="Identify by Linear issue (reverse slug lookup)"
+#USAGE flag "--force" help="Skip confirmation and force removal"
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -8,77 +14,41 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 meb_config_validate
 
-usage() {
-  cat >&2 <<EOF
-Usage: mise run rm-worktree [OPTIONS] [PATH]
+force="${usage_force:-false}"
+targets=()
 
-Options:
-  (none)          Interactive multi-select picker
-  <path>          Remove worktree at the given path
-  --branch <n>    Identify worktree by branch name
-  --gh <number>   Identify by GitHub issue (reverse slug lookup)
-  --linear <id>   Identify by Linear issue (reverse slug lookup)
-  --force         Skip confirmation and force removal
+if [[ -n "${usage_path:-}" ]]; then
+  targets+=("$usage_path")
+fi
 
-EOF
-  exit 1
-}
+if [[ -n "${usage_branch:-}" ]]; then
+  path=$(meb_worktree_path_for_branch "$usage_branch")
+  if [[ -z "$path" ]]; then
+    echo "error: no worktree found for branch '$usage_branch'" >&2
+    exit 1
+  fi
+  targets+=("$path")
+fi
 
-force=false
-targets=()  # list of worktree paths to remove
+if [[ -n "${usage_gh:-}" ]]; then
+  branch=$(MEB_TRACKER=github meb_issue_to_branch "$usage_gh")
+  path=$(meb_worktree_path_for_branch "$branch")
+  if [[ -z "$path" ]]; then
+    echo "error: no worktree found for GitHub issue #$usage_gh (branch: $branch)" >&2
+    exit 1
+  fi
+  targets+=("$path")
+fi
 
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    --branch)
-      [[ $# -ge 2 ]] || { echo "error: --branch requires an argument" >&2; exit 1; }
-      path=$(meb_worktree_path_for_branch "$2")
-      if [[ -z "$path" ]]; then
-        echo "error: no worktree found for branch '$2'" >&2
-        exit 1
-      fi
-      targets+=("$path")
-      shift 2
-      ;;
-    --gh)
-      [[ $# -ge 2 ]] || { echo "error: --gh requires an argument" >&2; exit 1; }
-      branch=$(MEB_TRACKER=github meb_issue_to_branch "$2")
-      path=$(meb_worktree_path_for_branch "$branch")
-      if [[ -z "$path" ]]; then
-        echo "error: no worktree found for GitHub issue #$2 (branch: $branch)" >&2
-        exit 1
-      fi
-      targets+=("$path")
-      shift 2
-      ;;
-    --linear)
-      [[ $# -ge 2 ]] || { echo "error: --linear requires an argument" >&2; exit 1; }
-      branch=$(MEB_TRACKER=linear meb_issue_to_branch "$2")
-      path=$(meb_worktree_path_for_branch "$branch")
-      if [[ -z "$path" ]]; then
-        echo "error: no worktree found for Linear issue $2 (branch: $branch)" >&2
-        exit 1
-      fi
-      targets+=("$path")
-      shift 2
-      ;;
-    --force)
-      force=true
-      shift
-      ;;
-    --help|-h)
-      usage
-      ;;
-    -*)
-      echo "error: unknown option: $1" >&2
-      usage
-      ;;
-    *)
-      # Treat as a path
-      targets+=("$1")
-      shift
-      ;;
-  esac
-done
+if [[ -n "${usage_linear:-}" ]]; then
+  branch=$(MEB_TRACKER=linear meb_issue_to_branch "$usage_linear")
+  path=$(meb_worktree_path_for_branch "$branch")
+  if [[ -z "$path" ]]; then
+    echo "error: no worktree found for Linear issue $usage_linear (branch: $branch)" >&2
+    exit 1
+  fi
+  targets+=("$path")
+fi
 
 # Interactive mode: multi-select from existing worktrees
 if [[ ${#targets[@]} -eq 0 ]]; then

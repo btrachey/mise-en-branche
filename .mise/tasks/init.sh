@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+#MISE description="Clone repo as bare and create main worktree"
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"

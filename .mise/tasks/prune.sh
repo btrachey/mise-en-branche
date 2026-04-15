@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+#MISE description="Remove worktrees for merged branches"
+#USAGE flag "--dry-run" help="Print candidates without removing anything"
+#USAGE flag "--yes" help="Skip confirmation prompt"
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -7,42 +10,8 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 meb_config_validate
 
-usage() {
-  cat >&2 <<EOF
-Usage: mise run prune [OPTIONS]
-
-Remove worktrees whose branches have been merged.
-
-Options:
-  --dry-run   Print candidates without removing anything
-  --yes       Skip confirmation prompt
-
-EOF
-  exit 1
-}
-
-dry_run=false
-yes=false
-
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    --dry-run)
-      dry_run=true
-      shift
-      ;;
-    --yes)
-      yes=true
-      shift
-      ;;
-    --help|-h)
-      usage
-      ;;
-    *)
-      echo "error: unknown argument: $1" >&2
-      usage
-      ;;
-  esac
-done
+dry_run="${usage_dry_run:-false}"
+yes="${usage_yes:-false}"
 
 default_branch=$(meb_default_branch)
 

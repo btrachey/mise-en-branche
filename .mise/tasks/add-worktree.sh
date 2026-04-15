@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+#MISE description="Create a new worktree (branch, issue, or interactive picker)"
+#USAGE flag "--branch <branch>" help="Use or create branch by name"
+#USAGE flag "--gh <number>" help="Resolve GitHub issue number to branch"
+#USAGE flag "--linear <id>" help="Resolve Linear issue ID to branch"
+#USAGE flag "--name <name>" help="Create new branch from free-form name"
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -9,59 +14,17 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 meb_config_validate
 
-usage() {
-  cat >&2 <<EOF
-Usage: mise run add-worktree [OPTIONS]
-
-Options:
-  (none)          Interactive issue picker
-  --branch <n>    Use or create branch by name
-  --gh <number>   Resolve GitHub issue number to branch
-  --linear <id>   Resolve Linear issue ID to branch
-  --name <n>      Create new branch from free-form name
-
-EOF
-  exit 1
-}
-
 branch=""
-mode=""
 
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    --branch)
-      [[ $# -ge 2 ]] || { echo "error: --branch requires an argument" >&2; exit 1; }
-      branch="$2"
-      mode="branch"
-      shift 2
-      ;;
-    --gh)
-      [[ $# -ge 2 ]] || { echo "error: --gh requires an argument" >&2; exit 1; }
-      branch=$(MEB_TRACKER=github meb_issue_to_branch "$2")
-      mode="branch"
-      shift 2
-      ;;
-    --linear)
-      [[ $# -ge 2 ]] || { echo "error: --linear requires an argument" >&2; exit 1; }
-      branch=$(MEB_TRACKER=linear meb_issue_to_branch "$2")
-      mode="branch"
-      shift 2
-      ;;
-    --name)
-      [[ $# -ge 2 ]] || { echo "error: --name requires an argument" >&2; exit 1; }
-      branch=$(meb_slugify "$2")
-      mode="branch"
-      shift 2
-      ;;
-    --help|-h)
-      usage
-      ;;
-    *)
-      echo "error: unknown argument: $1" >&2
-      usage
-      ;;
-  esac
-done
+if [[ -n "${usage_gh:-}" ]]; then
+  branch=$(MEB_TRACKER=github meb_issue_to_branch "$usage_gh")
+elif [[ -n "${usage_linear:-}" ]]; then
+  branch=$(MEB_TRACKER=linear meb_issue_to_branch "$usage_linear")
+elif [[ -n "${usage_branch:-}" ]]; then
+  branch="$usage_branch"
+elif [[ -n "${usage_name:-}" ]]; then
+  branch=$(meb_slugify "$usage_name")
+fi
 
 # Interactive mode: pick from issue tracker
 if [[ -z "$branch" ]]; then

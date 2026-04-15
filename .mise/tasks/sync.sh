@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+#MISE description="Fetch origin and rebase the current worktree onto the remote default branch"
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
