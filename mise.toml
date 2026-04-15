@@ -1,0 +1,32 @@
+[tools]
+gh = "latest"
+"cargo:linear-cli" = "latest"
+glow = "latest"
+gum = "latest"
+
+[env]
+MEB_REPO = { required = "GitHub repository in owner/repo format — run 'mise run init' to configure" }
+MEB_TRACKER = { required = "Issue tracker backend — run 'mise run init' to configure (github | linear | none)" }
+# MEB_LINEAR_TEAM = ""     # required when MEB_TRACKER=linear; set via: mise set MEB_LINEAR_TEAM=PROJ --env local
+# MEB_TERMINAL = "none"    # cmux | kitty | iterm2 | alacritty | ghostty | none
+# MEB_DEFAULT_BRANCH = ""  # auto-detected from GitHub if unset
+# MEB_WORKTREE_PREFIX = "" # optional subdirectory prefix for worktrees
+
+[settings]
+terminal_progress = true
+experimental = true
+
+[tasks.init]
+description = "Clone repo as bare and create main worktree"
+
+[tasks.add-worktree]
+description = "Create a new worktree (branch, issue, or interactive picker)"
+
+[tasks.rm-worktree]
+description = "Remove a worktree interactively or by identifier"
+
+[tasks.prune]
+description = "Remove worktrees for merged branches"
+
+[tasks.sync]
+description = "Fetch origin and rebase the current worktree onto the remote default branch"
