@@ -17,11 +17,26 @@ jobs:
               with:
                   fetch-depth: 0
 
+            - name: Detect pre-release
+              id: version
+              run: |
+                  if echo "$GITHUB_REF_NAME" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+-'; then
+                    echo "is_prerelease=true" >> "$GITHUB_OUTPUT"
+                  else
+                    echo "is_prerelease=false" >> "$GITHUB_OUTPUT"
+                  fi
             - name: Generate changelog
               run: |
-                  PREV_TAG=$(git tag --sort=-version:refname \
-                    | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' \
-                    | sed -n '2p')
+                  IS_PRERELEASE=${{ steps.version.outputs.is_prerelease }}
+                  if [ "$IS_PRERELEASE" = "true" ]; then
+                    PREV_TAG=$(git tag --sort=-version:refname \
+                      | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+' \
+                      | sed -n '2p')
+                  else
+                    PREV_TAG=$(git tag --sort=-version:refname \
+                      | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' \
+                      | sed -n '2p')
+                  fi            - name: Generate changelog
 
                   RANGE="${PREV_TAG:+${PREV_TAG}..}HEAD"
 
