@@ -1,0 +1,93 @@
+name: Release
+
+on:
+    push:
+        tags:
+            - "v*.*.*"
+
+permissions:
+    contents: write
+
+jobs:
+    release:
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - name: Generate changelog
+              run: |
+                  PREV_TAG=$(git tag --sort=-version:refname \
+                    | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' \
+                    | sed -n '2p')
+
+                  RANGE="${PREV_TAG:+${PREV_TAG}..}HEAD"
+
+                  append_section() {
+                    local pattern="$1" title="$2"
+                    local commits
+                    commits=$(git log "$RANGE" --pretty=format:"%s" \
+                      | grep -E "^${pattern}(\(.+\))?!?:" \
+                      | sed -E 's/^[^:]+: //')
+                    if [ -n "$commits" ]; then
+                      printf '### %s\n\n' "$title"
+                      echo "$commits" | sed 's/^/- /'
+                      echo ""
+                    fi
+                  }
+
+                  {
+                    append_section "feat"     "✨ Features"
+                    append_section "fix"      "🐛 Bug Fixes"
+                    append_section "perf"     "⚡ Performance"
+                    append_section "refactor" "♻️ Refactoring"
+                    append_section "docs"     "📚 Documentation"
+                    append_section "test"     "✅ Tests"
+                    append_section "build"    "📦 Build"
+                    append_section "chore"    "🔧 Chores"
+                    append_section "ci"       "👷 CI"
+                    # Misc : commits qui ne matchent aucun type connu
+                    misc=$(git log "$RANGE" --pretty=format:"%s" \
+                      | grep -Ev "^(feat|fix|perf|refactor|docs|test|build|chore|ci)(\(.+\))?!?:")
+                    if [ -n "$misc" ]; then
+                      printf '### 🗂️ Misc\n\n'
+                      echo "$misc" | sed 's/^/- /'
+                      echo ""
+                    fi
+                  } > CHANGELOG_RELEASE.md
+
+            - name: Create release archives
+              run: |
+                  EXCLUDES=(
+                    .git
+                    .github
+                    CLAUDE.md
+                    .idea
+                    .vscode
+                    "*.iml"
+                    .DS_Store
+                    CHANGELOG_RELEASE.md
+                  )
+
+                  RSYNC_ARGS=()
+                  for e in "${EXCLUDES[@]}"; do
+                    RSYNC_ARGS+=(--exclude="$e")
+                  done
+
+                  mkdir dist
+                  rsync -a "${RSYNC_ARGS[@]}" . dist/
+
+                  VERSION="${GITHUB_REF_NAME}"
+                  (cd dist && zip -r "../${VERSION}.zip" .)
+                  (cd dist && tar -czf "../${VERSION}.tar.gz" .)
+
+            - name: Create GitHub Release
+              uses: softprops/action-gh-release@v2
+              with:
+                  name: ${{ github.ref_name }}
+                  body_path: CHANGELOG_RELEASE.md
+                  files: |
+                      ${{ github.ref_name }}.zip
+                      ${{ github.ref_name }}.tar.gz
