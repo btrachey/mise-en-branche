@@ -6,7 +6,7 @@ This file documents the `mise-en-branche` project for Claude Code. Read it befor
 
 ## Project overview
 
-`mise-en-branche` is a git worktree manager built on top of **mise-en-place**. It manages bare git repositories where each branch lives in its own worktree directory. It integrates with GitHub (`gh` CLI) and Linear (`linear-cli`) for issue-driven branch creation, and with cmux, kitty, iTerm2, Alacritty, or Ghostty for automatic terminal window management.
+`mise-en-branche` is a git worktree manager built on top of **mise-en-place**. It manages bare git repositories where each branch lives in its own worktree directory. It integrates with GitHub (`gh` CLI), Linear (`linear-cli`), and Jira (direct REST API) for issue-driven branch creation, and with cmux, kitty, iTerm2, Alacritty, or Ghostty for automatic terminal window management.
 
 ---
 
@@ -24,7 +24,7 @@ mise-en-branche/
     ├── prune.sh               ← mise run prune
     └── lib/
         ├── git.sh             ← git / worktree helpers
-        ├── tracker.sh         ← issue tracker abstraction (github / linear)
+        ├── tracker.sh         ← issue tracker abstraction (github / linear / jira)
         ├── terminal.sh        ← terminal integration (cmux / kitty / iterm2 / alacritty / ghostty)
         └── config.sh          ← configuration validation and defaults
 ```
@@ -77,8 +77,12 @@ Configuration is read from `mise.toml` via `[vars]`. All variables are prefixed 
 | Variable | Required | Values | Description |
 |---|---|---|---|
 | `MEB_REPO` | yes | `owner/repo` | GitHub repository |
-| `MEB_TRACKER` | yes | `github` \| `linear` \| `none` | Issue tracker backend |
+| `MEB_TRACKER` | yes | `github` \| `linear` \| `jira` \| `none` | Issue tracker backend |
 | `MEB_LINEAR_TEAM` | if linear | string | Linear team key (e.g. `PROJ`) |
+| `MEB_JIRA_BASE_URL` | if jira | URL | Jira Cloud site, e.g. `https://yourcompany.atlassian.net` |
+| `MEB_JIRA_PROJECT` | if jira | string | Jira project key (e.g. `PROJ`) |
+| `MEB_JIRA_EMAIL` | if jira | string | Atlassian account email used for API auth |
+| `MEB_JIRA_API_TOKEN` | if jira | string | Jira API token (Basic auth, paired with `MEB_JIRA_EMAIL`) |
 | `MEB_TERMINAL` | no | `cmux` \| `kitty` \| `iterm2` \| `alacritty` \| `ghostty` \| `none` | Terminal to open on worktree creation |
 | `MEB_DEFAULT_BRANCH` | no | branch name | Defaults to repo's default branch |
 | `MEB_WORKTREE_PREFIX` | no | path prefix | Optional subdirectory for worktrees |
@@ -111,17 +115,19 @@ Configuration is read from `mise.toml` via `[vars]`. All variables are prefixed 
 | `--branch <n>` | Use or create branch by name |
 | `--gh <number>` | Resolve GitHub issue → branch |
 | `--linear <id>` | Resolve Linear issue → branch |
+| `--jira <key>` | Resolve Jira issue → branch |
 | `--name <n>` | Free-form name → new branch |
 
 **Interactive picker (no args):**
 
 1. Calls `meb_issue_list` from `tracker.sh` → list of `ID\tTITLE` lines
 2. Passes to `gum choose` for single selection
-3. Extracts issue ID from selection, proceeds as `--gh` or `--linear`
+3. Extracts issue ID from selection, proceeds as `--gh`, `--linear`, or `--jira`
 
 **Branch name derivation from issues:**
 - GitHub: `gh issue view <number> --json title,number --jq '"gh-\(.number)/\(.title)"'` → slugify
 - Linear: `linear issue <id>` → parse title → slugify → `<ID>/<slug>` (e.g. `PROJ-42/fix-login-timeout`)
+- Jira: `GET {MEB_JIRA_BASE_URL}/rest/api/3/issue/<key>?fields=summary` (Basic auth via `MEB_JIRA_EMAIL`/`MEB_JIRA_API_TOKEN`) → parse `.key`/`.fields.summary` with `jq` → slugify → `<key>/<slug>`
 - Slugify function in `lib/git.sh`: lowercase, spaces→`-`, strip non-alphanumeric except `-`, truncate to 50 chars
 
 **Worktree creation:**
@@ -154,6 +160,7 @@ git -C .bare worktree add "../${dir}" "$branch"
 | `--branch <n>` | Identify worktree by branch name |
 | `--gh <number>` | Identify by GitHub issue (reverse slug lookup) |
 | `--linear <id>` | Identify by Linear issue (reverse slug lookup) |
+| `--jira <key>` | Identify by Jira issue (reverse slug lookup) |
 | `--force` | Pass `--force` to `git worktree remove` |
 
 **Interactive mode:**
@@ -214,7 +221,7 @@ Key functions:
 
 ### `tasks/lib/tracker.sh`
 
-Dispatches to GitHub or Linear based on `MEB_TRACKER`.
+Dispatches to GitHub, Linear, or Jira based on `MEB_TRACKER`.
 
 Key functions:
 - `meb_issue_to_branch(tracker, id)` → branch name string
@@ -222,6 +229,12 @@ Key functions:
 
 GitHub implementation uses `gh issue list` and `gh issue view`.
 Linear implementation uses `linear issue list` and `linear issue <id>`.
+Jira implementation calls the Jira Cloud REST API directly (`curl` + `jq`, no CLI dependency):
+- `_meb_jira_curl` — wraps `curl` with Basic auth (`MEB_JIRA_EMAIL`:`MEB_JIRA_API_TOKEN`)
+- `meb_issue_list` → `POST {MEB_JIRA_BASE_URL}/rest/api/3/search/jql` with a JQL body scoped to `MEB_JIRA_PROJECT` and `statusCategory != Done`
+- `meb_issue_to_branch` → `GET {MEB_JIRA_BASE_URL}/rest/api/3/issue/<key>?fields=summary`
+
+The legacy `/rest/api/3/search` endpoint was fully retired by Atlassian in 2025 — always use `/rest/api/3/search/jql` for issue search. This integration targets Jira **Cloud** only (Basic auth + these endpoints don't apply to Server/Data Center).
 
 ---
 
@@ -239,6 +252,7 @@ cmux notes: use `cmux open <path>` to open a new window. Check `cmux` documentat
 - **Worktree paths**: always use `../` relative to `.bare` when calling `git worktree add`. Worktrees must live outside the bare repo directory.
 - **Linear CLI auth**: `linear auth` must be run once manually by the user. Do not attempt to automate authentication.
 - **gh auth**: `gh auth status` must pass before `init`. The script checks this and prints a clear error if not.
+- **Jira credentials**: `MEB_JIRA_API_TOKEN` is a secret. `init.sh` prompts for it with `gum input --password` and persists it via `mise set --env local`, which writes to the gitignored `mise.local.toml` — never put it in the committed `mise.toml`.
 - **Default branch**: never hardcode `main` or `master`. Always resolve via `meb_default_branch`.
 - **Slugify consistency**: the slug function is used both to create the branch name and to reverse-lookup a worktree from an issue ID. If the function changes, existing worktrees become un-resolvable. Treat it as stable API.
 - **cmux**: as a newer tool, its CLI may evolve. Verify `cmux` invocation against its current documentation.

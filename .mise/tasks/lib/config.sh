@@ -43,9 +43,9 @@ meb_config_validate() {
   fi
 
   case "$MEB_TRACKER" in
-    github|linear|none) ;;
+    github|linear|jira|none) ;;
     *)
-      echo "error: MEB_TRACKER must be \"github\", \"linear\", or \"none\" (got: \"$MEB_TRACKER\")" >&2
+      echo "error: MEB_TRACKER must be \"github\", \"linear\", \"jira\", or \"none\" (got: \"$MEB_TRACKER\")" >&2
       exit 1
       ;;
   esac
@@ -53,6 +53,16 @@ meb_config_validate() {
   if [[ "$MEB_TRACKER" == "linear" && -z "${MEB_LINEAR_TEAM:-}" ]]; then
     echo "error: MEB_LINEAR_TEAM is required when MEB_TRACKER=linear. Run 'mise run init' to configure." >&2
     exit 1
+  fi
+
+  if [[ "$MEB_TRACKER" == "jira" ]]; then
+    local var
+    for var in MEB_JIRA_BASE_URL MEB_JIRA_PROJECT MEB_JIRA_EMAIL MEB_JIRA_API_TOKEN; do
+      if [[ -z "${!var:-}" ]]; then
+        echo "error: $var is required when MEB_TRACKER=jira. Run 'mise run init' to configure." >&2
+        exit 1
+      fi
+    done
   fi
 }
 

@@ -4,6 +4,7 @@
 #USAGE flag "--branch <branch>" help="Identify worktree by branch name"
 #USAGE flag "--gh <number>" help="Identify by GitHub issue (reverse slug lookup)"
 #USAGE flag "--linear <id>" help="Identify by Linear issue (reverse slug lookup)"
+#USAGE flag "--jira <key>" help="Identify by Jira issue (reverse slug lookup)"
 #USAGE flag "--force" help="Skip confirmation and force removal"
 set -euo pipefail
 
@@ -45,6 +46,16 @@ if [[ -n "${usage_linear:-}" ]]; then
   path=$(meb_worktree_path_for_branch "$branch")
   if [[ -z "$path" ]]; then
     echo "error: no worktree found for Linear issue $usage_linear (branch: $branch)" >&2
+    exit 1
+  fi
+  targets+=("$path")
+fi
+
+if [[ -n "${usage_jira:-}" ]]; then
+  branch=$(MEB_TRACKER=jira meb_issue_to_branch "$usage_jira")
+  path=$(meb_worktree_path_for_branch "$branch")
+  if [[ -z "$path" ]]; then
+    echo "error: no worktree found for Jira issue $usage_jira (branch: $branch)" >&2
     exit 1
   fi
   targets+=("$path")

@@ -3,6 +3,7 @@
 #USAGE flag "--branch <branch>" help="Use or create branch by name"
 #USAGE flag "--gh <number>" help="Resolve GitHub issue number to branch"
 #USAGE flag "--linear <id>" help="Resolve Linear issue ID to branch"
+#USAGE flag "--jira <key>" help="Resolve Jira issue key to branch"
 #USAGE flag "--name <name>" help="Create new branch from free-form name"
 set -euo pipefail
 
@@ -20,6 +21,8 @@ if [[ -n "${usage_gh:-}" ]]; then
   branch=$(MEB_TRACKER=github meb_issue_to_branch "$usage_gh")
 elif [[ -n "${usage_linear:-}" ]]; then
   branch=$(MEB_TRACKER=linear meb_issue_to_branch "$usage_linear")
+elif [[ -n "${usage_jira:-}" ]]; then
+  branch=$(MEB_TRACKER=jira meb_issue_to_branch "$usage_jira")
 elif [[ -n "${usage_branch:-}" ]]; then
   branch="$usage_branch"
 elif [[ -n "${usage_name:-}" ]]; then

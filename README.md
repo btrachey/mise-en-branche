@@ -2,7 +2,7 @@
 
 > Git worktree management powered by [mise-en-place](https://mise.jdx.dev/).
 
-`mise-en-branche` orchestrates git bare repositories and worktrees, with native integration for GitHub and Linear issue trackers, and terminal multiplexers (tmux, cmux, Ghostty).
+`mise-en-branche` orchestrates git bare repositories and worktrees, with native integration for GitHub, Linear, and Jira issue trackers, and terminal multiplexers (tmux, cmux, Ghostty).
 
 ---
 
@@ -26,44 +26,50 @@ my-project/
 - [gh](https://cli.github.com/) — GitHub CLI (authenticated)
 - [gum](https://github.com/charmbracelet/gum) — interactive prompts and pickers
 - [glow](https://github.com/charmbracelet/glow) — Markdown rendering in terminal
+- [jq](https://jqlang.org/) — JSON parsing for the Jira REST API integration
 - One or more of:
   - [tmux](https://github.com/tmux/tmux)
   - [cmux](https://cmux.com)
   - [Ghostty](https://ghostty.org/)
 - For Linear support:
   - `linear-cli` — installed automatically via `cargo:linear-cli` in `mise.toml`
+- For Jira support:
+  - A Jira Cloud site and an [API token](https://id.atlassian.com/manage-profile/security/api-tokens) — no CLI needed, `mise-en-branche` talks to the Jira REST API directly
 
 ---
 
 ## Installation
 
-```bash
-git clone https://github.com/youruser/mise-en-branche
-cd mise-en-branche
-mise install
-```
+`mise-en-branche` isn't cloned into your project — it's pulled in as a [remote task include](https://mise.jdx.dev/tasks/task-configuration.html), one of mise's experimental features. Your project keeps its own independent `.git` history; mise fetches the task scripts into its own cache directory and runs them with your project directory as the working directory, so there's no conflict with the `.git` gitdir-pointer file that `mise run init` creates for your bare repository.
 
----
-
-## Configuration
-
-Configuration lives in `mise.toml` at the root of your project directory.
+Create a fresh project directory (or open an existing one you want to convert to the bare+worktree layout) and add a `mise.toml`:
 
 ```toml
+[task_config]
+includes = ["git::https://github.com/btrachey/mise-en-branche.git//.mise/tasks?ref=main"]
+
 [tools]
-gum    = "latest"
-glow   = "latest"
+gh    = "latest"
+gum   = "latest"
+glow  = "latest"
+jq    = "latest"
 "cargo:linear-cli" = "latest"
 
-[vars]
+[env]
 # Required
 MEB_REPO = "owner/repository"          # GitHub repository
 
-# Issue tracker: "github" | "linear" | "none"
+# Issue tracker: "github" | "linear" | "jira" | "none"
 MEB_TRACKER = "linear"
 
 # Linear-specific (required if MEB_TRACKER = "linear")
 MEB_LINEAR_TEAM = "PROJ"               # Linear team key
+
+# Jira-specific (required if MEB_TRACKER = "jira")
+MEB_JIRA_BASE_URL = "https://yourcompany.atlassian.net"
+MEB_JIRA_PROJECT = "PROJ"              # Jira project key
+MEB_JIRA_EMAIL = "you@company.com"     # Atlassian account email
+MEB_JIRA_API_TOKEN = ""                # store via `mise set` (goes to gitignored mise.local.toml), not committed here
 
 # Terminal: "tmux" | "cmux" | "ghostty" | "none"
 MEB_TERMINAL = "tmux"
@@ -71,7 +77,20 @@ MEB_TERMINAL = "tmux"
 # Optional
 MEB_DEFAULT_BRANCH = "main"            # defaults to repo default branch
 MEB_WORKTREE_PREFIX = ""               # e.g. "wt/" to namespace worktree dirs
+
+[settings]
+experimental = true   # required — remote git task includes are an experimental mise feature
 ```
+
+Then:
+
+```bash
+mise trust
+mise install
+mise run init
+```
+
+Track `main` for the latest tasks, or pin to a released version by replacing `?ref=main` with a tag, e.g. `?ref=v0.1.0`.
 
 ---
 
@@ -108,6 +127,9 @@ mise run add-worktree -- --gh 123
 # From a Linear issue ID
 mise run add-worktree -- --linear PROJ-42
 
+# From a Jira issue key
+mise run add-worktree -- --jira PROJ-42
+
 # From a free-form name (creates a new branch)
 mise run add-worktree -- --name my-experiment
 ```
@@ -133,6 +155,7 @@ mise run rm-worktree -- --branch feat/my-feature
 # By issue ID
 mise run rm-worktree -- --linear PROJ-42
 mise run rm-worktree -- --gh 123
+mise run rm-worktree -- --jira PROJ-42
 
 # Interactive multi-select (uses gum)
 mise run rm-worktree
@@ -181,6 +204,19 @@ linear auth
 
 mise run add-worktree -- --linear PROJ-42
 ```
+
+### Jira
+
+Talks directly to the [Jira Cloud REST API](https://developer.atlassian.com/cloud/jira/platform/rest/v3/) (`/rest/api/3`) — no CLI dependency. Authentication is HTTP Basic auth using your Atlassian account email and an API token.
+
+```bash
+# Generate a token once at:
+# https://id.atlassian.com/manage-profile/security/api-tokens
+
+mise run add-worktree -- --jira PROJ-42
+```
+
+Jira Server / Data Center is not supported — only Jira Cloud sites.
 
 ---
 

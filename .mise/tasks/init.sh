@@ -26,7 +26,7 @@ if [[ -z "${MEB_TRACKER:-}" ]]; then
   _meb_prompt_and_set MEB_TRACKER \
     gum choose \
       --header "Issue tracker:" \
-      "github" "linear" "none"
+      "github" "linear" "jira" "none"
 fi
 
 # Required when linear: MEB_LINEAR_TEAM
@@ -35,6 +35,38 @@ if [[ "$MEB_TRACKER" == "linear" && -z "${MEB_LINEAR_TEAM:-}" ]]; then
     gum input \
       --placeholder "PROJ" \
       --prompt "Linear team key: "
+fi
+
+# Required when jira: MEB_JIRA_BASE_URL, MEB_JIRA_PROJECT, MEB_JIRA_EMAIL, MEB_JIRA_API_TOKEN
+if [[ "$MEB_TRACKER" == "jira" ]]; then
+  if [[ -z "${MEB_JIRA_BASE_URL:-}" ]]; then
+    _meb_prompt_and_set MEB_JIRA_BASE_URL \
+      gum input \
+        --placeholder "https://yourcompany.atlassian.net" \
+        --prompt "Jira base URL: "
+  fi
+
+  if [[ -z "${MEB_JIRA_PROJECT:-}" ]]; then
+    _meb_prompt_and_set MEB_JIRA_PROJECT \
+      gum input \
+        --placeholder "PROJ" \
+        --prompt "Jira project key: "
+  fi
+
+  if [[ -z "${MEB_JIRA_EMAIL:-}" ]]; then
+    _meb_prompt_and_set MEB_JIRA_EMAIL \
+      gum input \
+        --placeholder "you@company.com" \
+        --prompt "Jira account email: "
+  fi
+
+  if [[ -z "${MEB_JIRA_API_TOKEN:-}" ]]; then
+    _meb_prompt_and_set MEB_JIRA_API_TOKEN \
+      gum input \
+        --password \
+        --placeholder "API token" \
+        --prompt "Jira API token (id.atlassian.com/manage-profile/security/api-tokens): "
+  fi
 fi
 
 # Optional: MEB_TERMINAL (auto-detect current terminal to propose as default)
