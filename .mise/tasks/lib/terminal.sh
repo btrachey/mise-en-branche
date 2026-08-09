@@ -36,10 +36,12 @@ meb_open_window() {
       ;;
 
     iterm2)
+      local escaped_path
+      escaped_path=$(printf '%s' "$path" | sed "s/'/'\\''/g")
       osascript \
         -e 'tell application "iTerm2"' \
         -e '  tell current window' \
-        -e "    create tab with default profile command \"cd $(printf '%s' "$path" | sed "s/'/'\\\\''/g\") && exec \$SHELL\"" \
+        -e "    create tab with default profile command \"cd '${escaped_path}' && exec \$SHELL\"" \
         -e '  end tell' \
         -e 'end tell'
       ;;
