@@ -56,10 +56,15 @@ meb_config_validate() {
   fi
 
   if [[ "$MEB_TRACKER" == "jira" ]]; then
+    if [[ -z "${MEB_JIRA_PROJECT:-}" ]]; then
+      echo "error: MEB_JIRA_PROJECT is required when MEB_TRACKER=jira. Run 'mise run init' to configure." >&2
+      exit 1
+    fi
+
     local var
-    for var in MEB_JIRA_BASE_URL MEB_JIRA_PROJECT MEB_JIRA_EMAIL MEB_JIRA_API_TOKEN; do
+    for var in JIRA_HOST JIRA_EMAIL JIRA_API_TOKEN; do
       if [[ -z "${!var:-}" ]]; then
-        echo "error: $var is required when MEB_TRACKER=jira. Run 'mise run init' to configure." >&2
+        echo "error: $var is not set. mise-en-branche reads Jira credentials from the ambient environment, not mise.toml — export $var in your shell." >&2
         exit 1
       fi
     done

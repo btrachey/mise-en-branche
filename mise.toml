@@ -10,10 +10,8 @@ usage = "latest"
 # MEB_REPO = ""        # owner/repo format; set via: mise set MEB_REPO=owner/repo --env local
 # MEB_TRACKER = ""     # github | linear | jira | none; set via: mise set MEB_TRACKER=github --env local
 # MEB_LINEAR_TEAM = ""     # required when MEB_TRACKER=linear; set via: mise set MEB_LINEAR_TEAM=PROJ --env local
-# MEB_JIRA_BASE_URL = ""   # required when MEB_TRACKER=jira; e.g. https://yourcompany.atlassian.net
 # MEB_JIRA_PROJECT = ""    # required when MEB_TRACKER=jira; Jira project key, e.g. PROJ
-# MEB_JIRA_EMAIL = ""      # required when MEB_TRACKER=jira; Atlassian account email
-# MEB_JIRA_API_TOKEN = ""  # required when MEB_TRACKER=jira; from id.atlassian.com/manage-profile/security/api-tokens
+# Jira credentials are NOT set here — export JIRA_HOST, JIRA_EMAIL, JIRA_API_TOKEN in your shell environment instead
 # MEB_TERMINAL = "none"    # cmux | kitty | iterm2 | alacritty | ghostty | none
 # MEB_DEFAULT_BRANCH = ""  # auto-detected from GitHub if unset
 # MEB_WORKTREE_PREFIX = "" # optional subdirectory prefix for worktrees

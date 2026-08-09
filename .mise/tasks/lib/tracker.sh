@@ -5,7 +5,7 @@ set -euo pipefail
 
 # _meb_jira_curl — authenticated request against the Jira Cloud REST API
 _meb_jira_curl() {
-  curl -sf -u "${MEB_JIRA_EMAIL}:${MEB_JIRA_API_TOKEN}" \
+  curl -sf -u "${JIRA_EMAIL}:${JIRA_API_TOKEN}" \
     -H "Accept: application/json" \
     "$@"
 }
@@ -37,7 +37,7 @@ meb_issue_to_branch() {
 
     jira)
       local key summary slug response
-      response=$(_meb_jira_curl "${MEB_JIRA_BASE_URL}/rest/api/3/issue/${id}?fields=summary")
+      response=$(_meb_jira_curl "${JIRA_HOST}/rest/api/3/issue/${id}?fields=summary")
       key=$(echo "$response" | jq -r '.key')
       summary=$(echo "$response" | jq -r '.fields.summary')
       slug=$(meb_slugify "$summary")
@@ -76,7 +76,7 @@ meb_issue_list() {
       jql="project = \"${MEB_JIRA_PROJECT}\" AND statusCategory != Done ORDER BY created DESC"
       body=$(jq -n --arg jql "$jql" '{jql: $jql, fields: ["summary"], maxResults: 50}')
       _meb_jira_curl -X POST -H "Content-Type: application/json" -d "$body" \
-        "${MEB_JIRA_BASE_URL}/rest/api/3/search/jql" \
+        "${JIRA_HOST}/rest/api/3/search/jql" \
         | jq -r '.issues[] | "\(.key)\t\(.fields.summary)"'
       ;;
 

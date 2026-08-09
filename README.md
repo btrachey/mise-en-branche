@@ -66,10 +66,9 @@ MEB_TRACKER = "linear"
 MEB_LINEAR_TEAM = "PROJ"               # Linear team key
 
 # Jira-specific (required if MEB_TRACKER = "jira")
-MEB_JIRA_BASE_URL = "https://yourcompany.atlassian.net"
 MEB_JIRA_PROJECT = "PROJ"              # Jira project key
-MEB_JIRA_EMAIL = "you@company.com"     # Atlassian account email
-MEB_JIRA_API_TOKEN = ""                # store via `mise set` (goes to gitignored mise.local.toml), not committed here
+# JIRA_HOST, JIRA_EMAIL, JIRA_API_TOKEN are NOT set here — export them in your
+# shell environment instead (see "Jira" under Issue tracker integration below)
 
 # Terminal: "tmux" | "cmux" | "ghostty" | "none"
 MEB_TERMINAL = "tmux"
@@ -209,9 +208,15 @@ mise run add-worktree -- --linear PROJ-42
 
 Talks directly to the [Jira Cloud REST API](https://developer.atlassian.com/cloud/jira/platform/rest/v3/) (`/rest/api/3`) — no CLI dependency. Authentication is HTTP Basic auth using your Atlassian account email and an API token.
 
+Credentials are read from the ambient environment, not `mise.toml` — export them in your shell (the same `JIRA_HOST` convention used by other Jira CLI tools, so you can share credentials across tools):
+
 ```bash
 # Generate a token once at:
 # https://id.atlassian.com/manage-profile/security/api-tokens
+
+export JIRA_HOST="https://yourcompany.atlassian.net"
+export JIRA_EMAIL="you@company.com"
+export JIRA_API_TOKEN="..."
 
 mise run add-worktree -- --jira PROJ-42
 ```

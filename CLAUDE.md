@@ -72,20 +72,19 @@ description = "Remove worktrees for merged branches"
 
 ## Configuration reference
 
-Configuration is read from `mise.toml` via `[vars]`. All variables are prefixed `MEB_`.
+Configuration is read from `mise.toml` via `[vars]`. All mise-managed variables are prefixed `MEB_`.
 
 | Variable | Required | Values | Description |
 |---|---|---|---|
 | `MEB_REPO` | yes | `owner/repo` | GitHub repository |
 | `MEB_TRACKER` | yes | `github` \| `linear` \| `jira` \| `none` | Issue tracker backend |
 | `MEB_LINEAR_TEAM` | if linear | string | Linear team key (e.g. `PROJ`) |
-| `MEB_JIRA_BASE_URL` | if jira | URL | Jira Cloud site, e.g. `https://yourcompany.atlassian.net` |
 | `MEB_JIRA_PROJECT` | if jira | string | Jira project key (e.g. `PROJ`) |
-| `MEB_JIRA_EMAIL` | if jira | string | Atlassian account email used for API auth |
-| `MEB_JIRA_API_TOKEN` | if jira | string | Jira API token (Basic auth, paired with `MEB_JIRA_EMAIL`) |
 | `MEB_TERMINAL` | no | `cmux` \| `kitty` \| `iterm2` \| `alacritty` \| `ghostty` \| `none` | Terminal to open on worktree creation |
 | `MEB_DEFAULT_BRANCH` | no | branch name | Defaults to repo's default branch |
 | `MEB_WORKTREE_PREFIX` | no | path prefix | Optional subdirectory for worktrees |
+
+Jira credentials are deliberately **not** mise-managed — `JIRA_HOST`, `JIRA_EMAIL`, and `JIRA_API_TOKEN` are read directly from the ambient process environment (`${VAR:-}` in `config.sh`/`tracker.sh`), not from `[vars]`/`mise set`. This mirrors the `JIRA_HOST` convention used by other Jira CLI tools, so credentials can be shared across tools instead of being duplicated into `mise.toml`.
 
 `config.sh` exports these variables and validates them at startup. Missing required variables print a clear error and exit 1.
 
@@ -127,7 +126,7 @@ Configuration is read from `mise.toml` via `[vars]`. All variables are prefixed 
 **Branch name derivation from issues:**
 - GitHub: `gh issue view <number> --json title,number --jq '"gh-\(.number)/\(.title)"'` → slugify
 - Linear: `linear issue <id>` → parse title → slugify → `<ID>/<slug>` (e.g. `PROJ-42/fix-login-timeout`)
-- Jira: `GET {MEB_JIRA_BASE_URL}/rest/api/3/issue/<key>?fields=summary` (Basic auth via `MEB_JIRA_EMAIL`/`MEB_JIRA_API_TOKEN`) → parse `.key`/`.fields.summary` with `jq` → slugify → `<key>/<slug>`
+- Jira: `GET {JIRA_HOST}/rest/api/3/issue/<key>?fields=summary` (Basic auth via `JIRA_EMAIL`/`JIRA_API_TOKEN`) → parse `.key`/`.fields.summary` with `jq` → slugify → `<key>/<slug>`
 - Slugify function in `lib/git.sh`: lowercase, spaces→`-`, strip non-alphanumeric except `-`, truncate to 50 chars
 
 **Worktree creation:**
@@ -230,9 +229,9 @@ Key functions:
 GitHub implementation uses `gh issue list` and `gh issue view`.
 Linear implementation uses `linear issue list` and `linear issue <id>`.
 Jira implementation calls the Jira Cloud REST API directly (`curl` + `jq`, no CLI dependency):
-- `_meb_jira_curl` — wraps `curl` with Basic auth (`MEB_JIRA_EMAIL`:`MEB_JIRA_API_TOKEN`)
-- `meb_issue_list` → `POST {MEB_JIRA_BASE_URL}/rest/api/3/search/jql` with a JQL body scoped to `MEB_JIRA_PROJECT` and `statusCategory != Done`
-- `meb_issue_to_branch` → `GET {MEB_JIRA_BASE_URL}/rest/api/3/issue/<key>?fields=summary`
+- `_meb_jira_curl` — wraps `curl` with Basic auth (`JIRA_EMAIL`:`JIRA_API_TOKEN`, both read from the ambient environment)
+- `meb_issue_list` → `POST {JIRA_HOST}/rest/api/3/search/jql` with a JQL body scoped to `MEB_JIRA_PROJECT` and `statusCategory != Done`
+- `meb_issue_to_branch` → `GET {JIRA_HOST}/rest/api/3/issue/<key>?fields=summary`
 
 The legacy `/rest/api/3/search` endpoint was fully retired by Atlassian in 2025 — always use `/rest/api/3/search/jql` for issue search. This integration targets Jira **Cloud** only (Basic auth + these endpoints don't apply to Server/Data Center).
 
@@ -252,7 +251,7 @@ cmux notes: use `cmux open <path>` to open a new window. Check `cmux` documentat
 - **Worktree paths**: always use `../` relative to `.bare` when calling `git worktree add`. Worktrees must live outside the bare repo directory.
 - **Linear CLI auth**: `linear auth` must be run once manually by the user. Do not attempt to automate authentication.
 - **gh auth**: `gh auth status` must pass before `init`. The script checks this and prints a clear error if not.
-- **Jira credentials**: `MEB_JIRA_API_TOKEN` is a secret. `init.sh` prompts for it with `gum input --password` and persists it via `mise set --env local`, which writes to the gitignored `mise.local.toml` — never put it in the committed `mise.toml`.
+- **Jira credentials**: `JIRA_HOST`, `JIRA_EMAIL`, and `JIRA_API_TOKEN` are read from the ambient process environment, not `mise.toml` — `init.sh` does not prompt for or persist them via `mise set`. Never route these through `[vars]`/`mise.local.toml`; the user is expected to `export` them (matching the convention other Jira CLI tools use). Only `MEB_JIRA_PROJECT` is mise-managed.
 - **Default branch**: never hardcode `main` or `master`. Always resolve via `meb_default_branch`.
 - **Slugify consistency**: the slug function is used both to create the branch name and to reverse-lookup a worktree from an issue ID. If the function changes, existing worktrees become un-resolvable. Treat it as stable API.
 - **cmux**: as a newer tool, its CLI may evolve. Verify `cmux` invocation against its current documentation.
