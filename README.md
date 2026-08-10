@@ -136,6 +136,7 @@ mise run add-worktree -- --name my-experiment
 
 **Behaviour:**
 - Branch names are derived from the issue title when using `--gh`, `--linear`, or the interactive picker
+- Fetches from `origin`, then reuses an existing local or remote branch of that name if one exists — only creating a brand new branch (off the default branch) when neither is found
 - The worktree directory is created relative to the project root (or under `MEB_WORKTREE_PREFIX` if set)
 - Once created, opens a new window/pane in the configured terminal (tmux, cmux, Ghostty, or WezTerm) pointed at the worktree directory
 

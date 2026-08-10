@@ -130,10 +130,10 @@ Jira credentials are deliberately **not** mise-managed — `JIRA_HOST`, `JIRA_EM
 - Slugify function in `lib/git.sh`: lowercase, spaces→`-`, strip non-alphanumeric except `-`, truncate to 50 chars
 
 **Worktree creation:**
-```bash
-local dir="${MEB_WORKTREE_PREFIX}${branch}"
-git -C .bare worktree add "../${dir}" "$branch"
-```
+- `git -C .bare fetch origin` first, to refresh remote-tracking refs (best-effort — a fetch failure only downgrades to a local-refs-only check, it isn't fatal)
+- If `refs/heads/<branch>` exists: `git -C .bare worktree add "../${dir}" "$branch"` (reuse the local branch)
+- Else if `refs/remotes/origin/<branch>` exists: `git -C .bare worktree add --track -b "$branch" "../${dir}" "origin/$branch"` (create a local branch tracking the remote one)
+- Else: `git -C .bare worktree add -b "$branch" "../${dir}" "$default_branch"` (create a brand new branch off the default branch)
 
 **Terminal integration** (delegates to `lib/terminal.sh → meb_open_window`):
 

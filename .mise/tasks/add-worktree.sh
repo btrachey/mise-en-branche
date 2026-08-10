@@ -58,10 +58,19 @@ fi
 # Create the worktree
 dir="${MEB_WORKTREE_PREFIX:-}${branch}"
 
-# Determine if branch already exists in the remote
-if meb_git show-ref --verify --quiet "refs/heads/$branch" 2>/dev/null; then
-  echo "Creating worktree for existing branch '$branch'..."
+# Refresh remote refs so the remote-branch check below is accurate; don't
+# fail hard if there's no network, just fall back to local refs
+if ! meb_git fetch origin --quiet 2>/dev/null; then
+  echo "warning: failed to fetch from origin; checking local refs only" >&2
+fi
+
+# Determine if the branch already exists locally or on the remote
+if meb_git show-ref --verify --quiet "refs/heads/$branch"; then
+  echo "Creating worktree for existing local branch '$branch'..."
   meb_git worktree add "../${dir}" "$branch"
+elif meb_git show-ref --verify --quiet "refs/remotes/origin/$branch"; then
+  echo "Creating worktree tracking existing remote branch 'origin/$branch'..."
+  meb_git worktree add --track -b "$branch" "../${dir}" "origin/$branch"
 else
   echo "Creating worktree with new branch '$branch'..."
   default_branch=$(meb_default_branch)
