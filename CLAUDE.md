@@ -6,7 +6,7 @@ This file documents the `mise-en-branche` project for Claude Code. Read it befor
 
 ## Project overview
 
-`mise-en-branche` is a git worktree manager built on top of **mise-en-place**. It manages bare git repositories where each branch lives in its own worktree directory. It integrates with GitHub (`gh` CLI), Linear (`linear-cli`), and Jira (direct REST API) for issue-driven branch creation, and with cmux, kitty, iTerm2, Alacritty, or Ghostty for automatic terminal window management.
+`mise-en-branche` is a git worktree manager built on top of **mise-en-place**. It manages bare git repositories where each branch lives in its own worktree directory. It integrates with GitHub (`gh` CLI), Linear (`linear-cli`), and Jira (direct REST API) for issue-driven branch creation, and with tmux, cmux, kitty, iTerm2, Alacritty, Ghostty, or WezTerm for automatic terminal window management.
 
 ---
 
@@ -25,7 +25,7 @@ mise-en-branche/
     └── lib/
         ├── git.sh             ← git / worktree helpers
         ├── tracker.sh         ← issue tracker abstraction (github / linear / jira)
-        ├── terminal.sh        ← terminal integration (cmux / kitty / iterm2 / alacritty / ghostty)
+        ├── terminal.sh        ← terminal integration (tmux / cmux / kitty / iterm2 / alacritty / ghostty / wezterm)
         └── config.sh          ← configuration validation and defaults
 ```
 
@@ -80,7 +80,7 @@ Configuration is read from `mise.toml` via `[vars]`. All mise-managed variables 
 | `MEB_TRACKER` | yes | `github` \| `linear` \| `jira` \| `none` | Issue tracker backend |
 | `MEB_LINEAR_TEAM` | if linear | string | Linear team key (e.g. `PROJ`) |
 | `MEB_JIRA_PROJECT` | if jira | string | Jira project key (e.g. `PROJ`) |
-| `MEB_TERMINAL` | no | `cmux` \| `kitty` \| `iterm2` \| `alacritty` \| `ghostty` \| `none` | Terminal to open on worktree creation |
+| `MEB_TERMINAL` | no | `tmux` \| `cmux` \| `kitty` \| `iterm2` \| `alacritty` \| `ghostty` \| `wezterm` \| `none` | Terminal to open on worktree creation |
 | `MEB_DEFAULT_BRANCH` | no | branch name | Defaults to repo's default branch |
 | `MEB_WORKTREE_PREFIX` | no | path prefix | Optional subdirectory for worktrees |
 
@@ -139,11 +139,13 @@ git -C .bare worktree add "../${dir}" "$branch"
 
 | `MEB_TERMINAL` | Command |
 |---|---|
+| `tmux` | `tmux new-window -c "$worktree_path" -n "$branch"` |
 | `cmux` | `cmux open "$worktree_path"` |
 | `kitty` | `kitten @ launch --type=tab --tab-title "$branch" --cwd "$worktree_path"` |
 | `iterm2` | `osascript` — create tab with `cd $worktree_path && exec $SHELL` |
 | `alacritty` | `alacritty --title "$branch" --working-directory "$worktree_path"` |
 | `ghostty` | `ghostty --working-directory="$worktree_path"` |
+| `wezterm` | `wezterm cli spawn --cwd "$worktree_path"` then `wezterm cli set-tab-title --pane-id <id> "$branch"` |
 | `none` | `echo "$worktree_path"` |
 
 ---

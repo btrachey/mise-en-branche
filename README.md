@@ -2,7 +2,7 @@
 
 > Git worktree management powered by [mise-en-place](https://mise.jdx.dev/).
 
-`mise-en-branche` orchestrates git bare repositories and worktrees, with native integration for GitHub, Linear, and Jira issue trackers, and terminal multiplexers (tmux, cmux, Ghostty).
+`mise-en-branche` orchestrates git bare repositories and worktrees, with native integration for GitHub, Linear, and Jira issue trackers, and terminal multiplexers (tmux, cmux, Ghostty, WezTerm).
 
 ---
 
@@ -31,6 +31,7 @@ my-project/
   - [tmux](https://github.com/tmux/tmux)
   - [cmux](https://cmux.com)
   - [Ghostty](https://ghostty.org/)
+  - [WezTerm](https://wezfurlong.org/wezterm/)
 - For Linear support:
   - `linear-cli` — installed automatically via `cargo:linear-cli` in `mise.toml`
 - For Jira support:
@@ -70,7 +71,7 @@ MEB_JIRA_PROJECT = "PROJ"              # Jira project key
 # JIRA_HOST, JIRA_EMAIL, JIRA_API_TOKEN are NOT set here — export them in your
 # shell environment instead (see "Jira" under Issue tracker integration below)
 
-# Terminal: "tmux" | "cmux" | "ghostty" | "none"
+# Terminal: "tmux" | "cmux" | "ghostty" | "wezterm" | "none"
 MEB_TERMINAL = "tmux"
 
 # Optional
@@ -136,7 +137,7 @@ mise run add-worktree -- --name my-experiment
 **Behaviour:**
 - Branch names are derived from the issue title when using `--gh`, `--linear`, or the interactive picker
 - The worktree directory is created relative to the project root (or under `MEB_WORKTREE_PREFIX` if set)
-- Once created, opens a new window/pane in the configured terminal (tmux, cmux, or Ghostty) pointed at the worktree directory
+- Once created, opens a new window/pane in the configured terminal (tmux, cmux, Ghostty, or WezTerm) pointed at the worktree directory
 
 ---
 
@@ -232,6 +233,7 @@ Jira Server / Data Center is not supported — only Jira Cloud sites.
 | `tmux`   | Creates a new tmux window named after the branch, cwd set to the worktree |
 | `cmux`   | Opens a new cmux window in the worktree directory |
 | `ghostty`| Opens a new Ghostty tab/window in the worktree directory |
+| `wezterm`| Spawns a new WezTerm tab (via `wezterm cli`) and titles it after the branch |
 | `none`   | Skips terminal integration; prints the worktree path to stdout |
 
 ---

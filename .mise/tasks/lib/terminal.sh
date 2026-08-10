@@ -2,9 +2,11 @@
 set -euo pipefail
 
 # meb_detect_terminal — guess the active terminal multiplexer/emulator
-# Returns one of: cmux, kitty, iterm2, alacritty, ghostty, none
+# Returns one of: tmux, cmux, kitty, iterm2, alacritty, ghostty, wezterm, none
 meb_detect_terminal() {
-  if [[ -n "${CMUX_WORKSPACE_ID:-}" && -n "${CMUX_SURFACE_ID:-}" ]]; then
+  if [[ -n "${TMUX:-}" ]]; then
+    echo "tmux"
+  elif [[ -n "${CMUX_WORKSPACE_ID:-}" && -n "${CMUX_SURFACE_ID:-}" ]]; then
     echo "cmux"
   elif [[ -n "${KITTY_WINDOW_ID:-}" ]]; then
     echo "kitty"
@@ -14,6 +16,8 @@ meb_detect_terminal() {
     echo "alacritty"
   elif [[ "${TERM_PROGRAM:-}" == "ghostty" || -n "${GHOSTTY_RESOURCES_DIR:-}" ]]; then
     echo "ghostty"
+  elif [[ "${TERM_PROGRAM:-}" == "WezTerm" || -n "${WEZTERM_PANE:-}" ]]; then
+    echo "wezterm"
   else
     echo "none"
   fi
@@ -26,6 +30,11 @@ meb_open_window() {
   local name="$2"
 
   case "${MEB_TERMINAL:-none}" in
+    tmux)
+      # Requires an active tmux session; creates a new window within it
+      tmux new-window -c "$path" -n "$name"
+      ;;
+
     cmux)
       cmux open "$path"
       ;;
@@ -53,6 +62,13 @@ meb_open_window() {
 
     ghostty)
       ghostty --working-directory="$path"
+      ;;
+
+    wezterm)
+      # Requires a running wezterm mux server; opens a new tab and renames it
+      local pane_id
+      pane_id=$(wezterm cli spawn --cwd "$path")
+      wezterm cli set-tab-title --pane-id "$pane_id" "$name"
       ;;
 
     none|"")

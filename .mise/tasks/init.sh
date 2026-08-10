@@ -53,7 +53,7 @@ if [[ -z "${MEB_TERMINAL:-}" ]]; then
   detected=$(meb_detect_terminal)
   # Build option list with detected value first so gum pre-selects it
   terminal_opts=("$detected")
-  for opt in "none" "cmux" "kitty" "iterm2" "alacritty" "ghostty"; do
+  for opt in "none" "tmux" "cmux" "kitty" "iterm2" "alacritty" "ghostty" "wezterm"; do
     [[ "$opt" != "$detected" ]] && terminal_opts+=("$opt")
   done
   _meb_prompt_and_set_optional MEB_TERMINAL \

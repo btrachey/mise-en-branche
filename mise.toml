@@ -12,7 +12,7 @@ usage = "latest"
 # MEB_LINEAR_TEAM = ""     # required when MEB_TRACKER=linear; set via: mise set MEB_LINEAR_TEAM=PROJ --env local
 # MEB_JIRA_PROJECT = ""    # required when MEB_TRACKER=jira; Jira project key, e.g. PROJ
 # Jira credentials are NOT set here — export JIRA_HOST, JIRA_EMAIL, JIRA_API_TOKEN in your shell environment instead
-# MEB_TERMINAL = "none"    # cmux | kitty | iterm2 | alacritty | ghostty | none
+# MEB_TERMINAL = "none"    # tmux | cmux | kitty | iterm2 | alacritty | ghostty | wezterm | none
 # MEB_DEFAULT_BRANCH = ""  # auto-detected from GitHub if unset
 # MEB_WORKTREE_PREFIX = "" # optional subdirectory prefix for worktrees
 
